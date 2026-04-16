@@ -33,4 +33,5 @@ node index.js
 
 ##  Observações
 - API retorna status codes corretos
-- Testável via Postman
+- Testável via Postman      
+

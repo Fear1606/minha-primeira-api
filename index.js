@@ -7,6 +7,7 @@ const Categoria = require("./models/Categoria");
 
 app.use(express.json());
 
+
 /* =========================
    RELACIONAMENTO
 ========================= */
