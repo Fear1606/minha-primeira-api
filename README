@@ -1,0 +1,32 @@
+# API REST - Produtos
+
+## Tecnologias
+- Node.js
+- Express
+- Sequelize
+- SQLite
+
+## Funcionalidades
+- CRUD completo
+- Banco de dados integrado
+- Validação de dados
+- Tratamento de erros
+
+## Endpoints
+- GET /api/produtos
+- GET /api/produtos/:id
+- POST /api/produtos
+- PUT /api/produtos/:id
+- DELETE /api/produtos/:id
+
+## Metodologia Ágil
+Utilizamos conceitos de Scrum:
+- Daily Scrum
+- Sprint Review
+
+## Qualidade
+Aplicado modelo PDCA e boas práticas do MPS.BR
+
+## Como rodar
+npm install
+node index.js
