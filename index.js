@@ -1,119 +1,89 @@
-// IMPORTS
-const express = require('express');
-const { Sequelize, DataTypes } = require('sequelize');
-
+const express = require("express");
 const app = express();
+
+const sequelize = require("./models/modelsindex");
+const Produto = require("./models/Produto");
+const Categoria = require("./models/Categoria");
+
 app.use(express.json());
 
-const PORT = 3000;
+/* =========================
+   RELACIONAMENTO
+========================= */
+Categoria.hasMany(Produto);
+Produto.belongsTo(Categoria);
 
-// ----------------------
-// BANCO (SQLite)
-// ----------------------
-const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './database.sqlite'
+/* =========================
+   ROTA TESTE
+========================= */
+app.get("/", (req, res) => {
+    res.send("API funcionando 🚀");
 });
 
-// MODEL
-const Produto = sequelize.define('Produto', {
-    nome: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    preco: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    categoria: {
-        type: DataTypes.STRING,
-        allowNull: false
-    }
-});
+/* =========================
+   CRUD PRODUTOS
+========================= */
 
-// ----------------------
-// ROTAS
-// ----------------------
-
-// TESTE
-app.get('/', (req, res) => {
-    res.json({ mensagem: "API com banco funcionando 🚀" });
-});
-
-// GET COM FILTRO + PAGINAÇÃO
-app.get('/api/produtos', async (req, res) => {
+// GET com filtro + paginação + ordenação
+app.get("/api/produtos", async (req, res) => {
     try {
-        const { categoria, ordem, direcao, pagina = 1, limite = 10 } = req.query;
+        const { nome, page = 1, limit = 5 } = req.query;
 
-        let where = {};
-        if (categoria) where.categoria = categoria;
-
-        let order = [];
-        if (ordem) {
-            order.push([ordem, direcao === 'desc' ? 'DESC' : 'ASC']);
-        }
-
-        const offset = (pagina - 1) * limite;
-
-        const { count, rows } = await Produto.findAndCountAll({
-            where,
-            order,
-            limit: parseInt(limite),
-            offset: parseInt(offset)
+        const produtos = await Produto.findAll({
+            where: nome ? { nome } : {},
+            include: Categoria,
+            limit: parseInt(limit),
+            offset: (page - 1) * limit,
+            order: [["preco", "ASC"]]
         });
 
-        res.json({
-            dados: rows,
-            total: count,
-            pagina: parseInt(pagina)
-        });
-
-    } catch (error) {
+        res.status(200).json(produtos);
+    } catch (err) {
         res.status(500).json({ erro: "Erro ao buscar produtos" });
     }
 });
 
-// GET POR ID
-app.get('/api/produtos/:id', async (req, res) => {
-    const produto = await Produto.findByPk(req.params.id);
+// GET por ID
+app.get("/api/produtos/:id", async (req, res) => {
+    const produto = await Produto.findByPk(req.params.id, {
+        include: Categoria
+    });
 
     if (!produto) {
         return res.status(404).json({ erro: "Produto não encontrado" });
     }
 
-    res.json(produto);
+    res.status(200).json(produto);
 });
 
 // POST
-app.post('/api/produtos', async (req, res) => {
-    const { nome, preco, categoria } = req.body;
+app.post("/api/produtos", async (req, res) => {
+    const { nome, preco, CategoriaId } = req.body;
 
-    if (!nome || !preco || !categoria) {
-        return res.status(400).json({ erro: "Campos obrigatórios faltando" });
+    if (!nome || !preco) {
+        return res.status(400).json({ erro: "Dados inválidos" });
     }
 
-    const novo = await Produto.create({ nome, preco, categoria });
+    const produto = await Produto.create({ nome, preco, CategoriaId });
 
-    res.status(201).json(novo);
+    res.status(201).json(produto);
 });
 
 // PUT
-app.put('/api/produtos/:id', async (req, res) => {
+app.put("/api/produtos/:id", async (req, res) => {
     const produto = await Produto.findByPk(req.params.id);
 
     if (!produto) {
         return res.status(404).json({ erro: "Produto não encontrado" });
     }
 
-    const { nome, preco, categoria } = req.body;
+    await produto.update(req.body);
 
-    await produto.update({ nome, preco, categoria });
-
-    res.json(produto);
+    res.status(200).json(produto);
 });
 
 // DELETE
-app.delete('/api/produtos/:id', async (req, res) => {
+app.delete("/api/produtos/:id", async (req, res) => {
     const produto = await Produto.findByPk(req.params.id);
 
     if (!produto) {
@@ -125,39 +95,44 @@ app.delete('/api/produtos/:id', async (req, res) => {
     res.status(204).send();
 });
 
-// ----------------------
-// INICIAR + 20 REGISTROS
-// ----------------------
-sequelize.sync().then(async () => {
+/* =========================
+   BANCO + DADOS INICIAIS
+========================= */
+async function start() {
+    await sequelize.sync({ force: true });
 
-    const count = await Produto.count();
+    const cat1 = await Categoria.create({ nome: "Eletrônicos" });
+    const cat2 = await Categoria.create({ nome: "Alimentos" });
 
-    if (count === 0) {
-        await Produto.bulkCreate([
-            { nome: "Notebook", preco: 3500, categoria: "Informática" },
-            { nome: "Mouse", preco: 150, categoria: "Informática" },
-            { nome: "Teclado", preco: 200, categoria: "Informática" },
-            { nome: "Monitor", preco: 1200, categoria: "Informática" },
-            { nome: "Cadeira", preco: 900, categoria: "Móveis" },
-            { nome: "Mesa", preco: 500, categoria: "Móveis" },
-            { nome: "Livro JS", preco: 80, categoria: "Livros" },
-            { nome: "Livro Node", preco: 95, categoria: "Livros" },
-            { nome: "Headset", preco: 250, categoria: "Acessórios" },
-            { nome: "Webcam", preco: 300, categoria: "Acessórios" },
-            { nome: "SSD", preco: 400, categoria: "Informática" },
-            { nome: "HD", preco: 300, categoria: "Informática" },
-            { nome: "Fonte", preco: 350, categoria: "Informática" },
-            { nome: "Gabinete", preco: 450, categoria: "Informática" },
-            { nome: "Cabo HDMI", preco: 50, categoria: "Acessórios" },
-            { nome: "Adaptador USB", preco: 70, categoria: "Acessórios" },
-            { nome: "Livro Python", preco: 85, categoria: "Livros" },
-            { nome: "Livro Java", preco: 90, categoria: "Livros" },
-            { nome: "Luminária", preco: 120, categoria: "Móveis" },
-            { nome: "Suporte Monitor", preco: 180, categoria: "Móveis" }
-        ]);
-    }
+    await Produto.bulkCreate([
+        { nome: "Celular", preco: 1500, CategoriaId: cat1.id },
+        { nome: "Notebook", preco: 3000, CategoriaId: cat1.id },
+        { nome: "Mouse", preco: 50, CategoriaId: cat1.id },
+        { nome: "Teclado", preco: 120, CategoriaId: cat1.id },
+        { nome: "Monitor", preco: 900, CategoriaId: cat1.id },
 
-    app.listen(PORT, () => {
-        console.log(`🚀 API rodando em http://localhost:${PORT}`);
+        { nome: "Arroz", preco: 25, CategoriaId: cat2.id },
+        { nome: "Feijão", preco: 10, CategoriaId: cat2.id },
+        { nome: "Macarrão", preco: 8, CategoriaId: cat2.id },
+        { nome: "Leite", preco: 6, CategoriaId: cat2.id },
+        { nome: "Pão", preco: 7, CategoriaId: cat2.id },
+
+        { nome: "TV", preco: 2500, CategoriaId: cat1.id },
+        { nome: "Fone", preco: 200, CategoriaId: cat1.id },
+        { nome: "Café", preco: 15, CategoriaId: cat2.id },
+        { nome: "Açúcar", preco: 5, CategoriaId: cat2.id },
+        { nome: "Sal", preco: 3, CategoriaId: cat2.id },
+
+        { nome: "Tablet", preco: 1200, CategoriaId: cat1.id },
+        { nome: "Biscoito", preco: 4, CategoriaId: cat2.id },
+        { nome: "Queijo", preco: 20, CategoriaId: cat2.id },
+        { nome: "Iogurte", preco: 8, CategoriaId: cat2.id },
+        { nome: "HD Externo", preco: 400, CategoriaId: cat1.id }
+    ]);
+
+    app.listen(3000, () => {
+        console.log("Servidor rodando em http://localhost:3000");
     });
-});
+}
+
+start();
