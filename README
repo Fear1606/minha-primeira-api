@@ -1,0 +1,37 @@
+# API REST - Produtos 
+
+##  Descrição
+API REST simples com CRUD completo usando Node.js, Express e SQLite.
+
+##  Tecnologias
+- Node.js
+- Express
+- Sequelize
+- SQLite
+
+##  Funcionalidades
+- CRUD completo
+- Relacionamento (Categoria x Produto)
+- Filtro por nome
+- Paginação
+- Ordenação
+
+##  Endpoints
+
+GET /api/produtos  
+GET /api/produtos/:id  
+POST /api/produtos  
+PUT /api/produtos/:id  
+DELETE /api/produtos/:id  
+
+## ▶ Como rodar
+npm install  
+node index.js  
+
+##  Banco de dados
+- SQLite com 20 registros automáticos
+
+##  Observações
+- API retorna status codes corretos
+- Testável via Postman      
+
